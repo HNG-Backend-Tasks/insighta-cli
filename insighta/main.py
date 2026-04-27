@@ -3,7 +3,10 @@ from . import auth, profiles
 
 app = typer.Typer(help="Insighta Labs+ CLI")
 
-app.add_typer(auth.app, name="auth")
+app.command("login")(auth.login)
+app.command("logout")(auth.logout)
+app.command("whoami")(auth.whoami)
+
 app.add_typer(profiles.app, name="profiles")
 
 

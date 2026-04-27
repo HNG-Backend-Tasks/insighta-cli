@@ -1,8 +1,8 @@
-from pathlib import Path
-import json
 import pytest
 import threading
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from typer.testing import CliRunner
+from insighta.main import app
 from insighta.auth import (
     save_credentials,
     load_credentials,
@@ -11,6 +11,8 @@ from insighta.auth import (
     generate_state,
     start_callback_server,
 )
+
+runner = CliRunner()
 
 @pytest.fixture(autouse=True)
 def temp_credentials(tmp_path):
@@ -66,3 +68,26 @@ def test_callback_server_captures_code_and_state():
     
     assert code == "testcode"
     assert state == "teststate"
+
+def test_login_command_saves_credentials(tmp_path):
+    fake_path = tmp_path / ".insighta" / "credentials.json"
+    
+    mock_server = MagicMock()
+    mock_server.handle_one_request.return_value = ("testcode", "teststate")   
+
+    mock_whoami_response = MagicMock()
+    mock_whoami_response.status_code = 200
+    mock_whoami_response.json.return_value = {"login": "danielpopoola"}
+
+    with patch("insighta.auth.CREDENTIALS_PATH", fake_path), \
+         patch("insighta.auth.generate_pkce_pair", return_value=("verifier", "challenge")), \
+         patch("insighta.auth.generate_state", return_value="teststate"), \
+         patch("insighta.auth.start_callback_server", return_value=(mock_server, 8765)), \
+         patch("insighta.auth.webbrowser.open"), \
+         patch("insighta.auth.exchange_code_with_backend", return_value={"access_token": "access123", "refresh_token": "refresh456"}), \
+         patch("insighta.auth.fetch_github_username", return_value="danielpopoola"):
+
+        result = runner.invoke(app, ["login"])
+
+    assert result.exit_code == 0
+    assert "danielpopoola" in result.output

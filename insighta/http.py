@@ -1,11 +1,8 @@
-import os
-
 import httpx
 import typer
 
 from .auth import load_credentials, save_credentials, clear_credentials
-
-BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+from .config import settings
 
 
 class APIClient:
@@ -15,7 +12,7 @@ class APIClient:
             typer.echo("Not logged in. Run: insighta login")
             raise typer.Exit(1)
         self._creds = creds
-        self._client = httpx.Client(base_url=BASE_URL)
+        self._client = httpx.Client(base_url=settings.API_BASE_URL)
 
     def _headers(self) -> dict:
         return {
