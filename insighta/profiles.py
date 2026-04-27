@@ -53,6 +53,9 @@ def get_profile(id: str = typer.Argument(...)):
     client = APIClient()
     with console.status("Fetching profile..."):
         response = client.get(f"/api/profiles/{id}")
+        if response.status_code == 404:
+            typer.echo(f"Profile {id} not found.")
+            raise typer.Exit(1)
     print_profile_detail(response.json()["data"])
 
 
@@ -82,20 +85,6 @@ def create_profile(name: str = typer.Option(..., "--name")):
 
     print_profile_detail(response.json()["data"])
 
-@app.command("delete")
-def delete_profile(id: str = typer.Argument(...)):
-    client = APIClient()
-    with console.status(f"Deleting profile for {id}..."):
-        response = client.post(f"/api/profiles/{id}")
-
-    if response.status_code == 403:
-        typer.echo("Error: Only admins can delete profiles.")
-        raise typer.Exit(1)
-    if response.status_code != 201:
-        typer.echo(f"Error: {response.json().get('message', 'Something went wrong.')}")
-        raise typer.Exit(1)
-
-    print_profile_detail(response.json()["data"])
 
 @app.command("export")
 def export_profiles(

@@ -108,7 +108,7 @@ def login():
         raise typer.Exit(1)
 
     data = exchange_code_with_backend(code, state, verifier)
-    username = data['username']
+    username = data["username"]
     save_credentials(data["access_token"], data["refresh_token"], username)
     typer.echo(f"Logged in as @{username}")
 
@@ -154,4 +154,3 @@ def exchange_code_with_backend(code: str, state: str, verifier: str) -> dict:
         typer.echo("Login failed. Please try again.")
         raise typer.Exit(1)
     return response.json()
-
