@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 import pytest
 from unittest.mock import patch
-from insighta.auth import save_credentials, load_credentials, clear_credentials
+from insighta.auth import save_credentials, load_credentials, clear_credentials, generate_pkce_pair, generate_state
 
 @pytest.fixture(autouse=True)
 def temp_credentials(tmp_path):
@@ -25,3 +25,20 @@ def test_clear_credentials_removes_file(temp_credentials):
     save_credentials("access123", "refresh456", "danielpopoola")
     clear_credentials()
     assert load_credentials() is None
+
+def test_pkce_pair_generates_valid_challenge():
+    verifier, challenge = generate_pkce_pair()
+    
+    import hashlib, base64
+    expected = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode()).digest()
+    ).rstrip(b"=").decode()
+    
+    assert challenge == expected
+    assert len(verifier) > 30
+
+def test_state_is_random():
+    state1 = generate_state()
+    state2 = generate_state()
+    assert state1 != state2
+    assert len(state1) > 10

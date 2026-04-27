@@ -1,4 +1,7 @@
 import json
+import hashlib
+import base64
+import secrets
 from pathlib import Path
 
 CREDENTIALS_PATH = Path.home() / ".insighta" / "credentials.json"
@@ -26,3 +29,14 @@ def load_credentials() -> dict | None:
 def clear_credentials() -> None:
     if CREDENTIALS_PATH.exists():
         CREDENTIALS_PATH.unlink()
+
+
+def generate_pkce_pair() -> tuple[str, str]:
+    verifier = secrets.token_urlsafe(32)
+    digest = hashlib.sha256(verifier.encode()).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+    return verifier, challenge
+
+
+def generate_state() -> str:
+    return secrets.token_urlsafe(16)
