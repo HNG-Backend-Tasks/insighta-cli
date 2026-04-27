@@ -91,3 +91,27 @@ def test_login_command_saves_credentials(tmp_path):
 
     assert result.exit_code == 0
     assert "danielpopoola" in result.output
+
+def test_logout_clears_credentials(tmp_path):
+    fake_path = tmp_path / ".insighta" / "credentials.json"
+    fake_path.parent.mkdir(parents=True)
+    fake_path.write_text('{"access_token": "abc", "refresh_token": "xyz", "username": "danielpopoola"}')
+
+    with patch("insighta.auth.CREDENTIALS_PATH", fake_path), \
+         patch("insighta.http.load_credentials", return_value={"access_token": "abc", "refresh_token": "xyz", "username": "danielpopoola"}), \
+         patch("httpx.Client.request", return_value=MagicMock(status_code=200)):
+        result = runner.invoke(app, ["logout"])
+
+    assert result.exit_code == 0
+    assert not fake_path.exists()
+
+def test_whoami_prints_username(tmp_path):
+    fake_path = tmp_path / ".insighta" / "credentials.json"
+    fake_path.parent.mkdir(parents=True)
+    fake_path.write_text('{"access_token": "abc", "refresh_token": "xyz", "username": "danielpopoola"}')
+
+    with patch("insighta.auth.CREDENTIALS_PATH", fake_path):
+        result = runner.invoke(app, ["whoami"])
+
+    assert result.exit_code == 0
+    assert "danielpopoola" in result.output

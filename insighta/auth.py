@@ -119,12 +119,28 @@ def login():
 
 @app.command()
 def logout():
-    pass
+    creds = load_credentials()
+    if not creds:
+        typer.echo("Not logged in.")
+        raise typer.Exit(1)
+
+    with httpx.Client() as client:
+        client.post(
+            f"{settings.API_BASE_URL}/auth/logout",
+            json={"refresh_token": creds["refresh_token"]},
+        )
+
+    clear_credentials()
+    typer.echo("Logged out.")
 
 
 @app.command()
 def whoami():
-    pass
+    creds = load_credentials()
+    if not creds:
+        typer.echo("Not logged in.")
+        raise typer.Exit(1)
+    typer.echo(f"Logged in as @{creds['username']}")
 
 
 def exchange_code_with_backend(code: str, state: str, verifier: str) -> dict:
