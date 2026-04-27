@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "insighta-cli"
+version = "0.1.0"
+description = "CLI version for Insighta"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "rich>=15.0.0",
+    "typer>=0.25.0",
+]
+
+[project.scripts]
+insighta = "insighta.main:app"
