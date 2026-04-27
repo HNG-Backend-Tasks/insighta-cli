@@ -1,4 +1,5 @@
 import typer
+
 from . import auth, profiles
 
 app = typer.Typer(help="Insighta Labs+ CLI")

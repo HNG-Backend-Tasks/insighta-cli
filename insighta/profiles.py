@@ -1,8 +1,10 @@
-import typer
 from typing import Optional
+
+import typer
 from rich.console import Console
+
+from .display import print_pagination, print_profile_detail, print_profiles_table
 from .http import APIClient
-from .display import print_profiles_table, print_pagination, print_profile_detail
 
 app = typer.Typer(help="Manage profiles")
 console = Console()

@@ -1,7 +1,7 @@
 import httpx
 import typer
 
-from .auth import load_credentials, save_credentials, clear_credentials
+from .auth import clear_credentials, load_credentials, save_credentials
 from .config import settings
 
 

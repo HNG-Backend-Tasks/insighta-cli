@@ -1,13 +1,13 @@
-import os
-import json
-import hashlib
 import base64
+import hashlib
+import json
 import secrets
 import socket
-from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
 import webbrowser
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
 import httpx
 import typer
 
@@ -92,7 +92,7 @@ def login():
     server, port = start_callback_server()
 
     params = {
-        "client_id": os.getenv("GITHUB_CLIENT_ID", ""),
+        "client_id": settings.GITHUB_CLIENT_ID,
         "redirect_uri": f"http://localhost:{port}/callback",
         "scope": "user:email",
         "state": state,
