@@ -20,6 +20,9 @@ dependencies = [
 insighta = "insighta.main:app"
 
 
+[tool.setuptools.packages.find]
+where = ["."]
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"

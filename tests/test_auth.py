@@ -101,9 +101,8 @@ def test_login_command_saves_credentials(tmp_path):
         patch("insighta.auth.webbrowser.open"),
         patch(
             "insighta.auth.exchange_code_with_backend",
-            return_value={"access_token": "access123", "refresh_token": "refresh456"},
+            return_value={"access_token": "access123", "refresh_token": "refresh456", "username":"danielpopoola"},
         ),
-        patch("insighta.auth.fetch_github_username", return_value="danielpopoola"),
     ):
         result = runner.invoke(app, ["login"])
 

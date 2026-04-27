@@ -2,7 +2,6 @@ import base64
 import hashlib
 import json
 import secrets
-import socket
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -15,6 +14,7 @@ from .config import settings
 
 app = typer.Typer()
 
+CALLBACK_PORT = 8765
 CREDENTIALS_PATH = Path.home() / ".insighta" / "credentials.json"
 
 
@@ -71,29 +71,25 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
 
 def start_callback_server() -> tuple[HTTPServer, int]:
-    with socket.socket() as s:
-        s.bind(("localhost", 0))
-        port = s.getsockname()[1]
-
-    server = HTTPServer(("localhost", port), _CallbackHandler)
+    server = HTTPServer(("localhost", CALLBACK_PORT), _CallbackHandler)
 
     def handle_one_request():
         server.handle_request()  # blocks until one request arrives
         return _CallbackHandler.code, _CallbackHandler.state
 
     server.handle_one_request = handle_one_request
-    return server, port
+    return server, CALLBACK_PORT
 
 
 @app.command()
 def login():
     verifier, challenge = generate_pkce_pair()
     state = generate_state()
-    server, port = start_callback_server()
+    server, _ = start_callback_server()
 
     params = {
         "client_id": settings.GITHUB_CLIENT_ID,
-        "redirect_uri": f"http://localhost:{port}/callback",
+        "redirect_uri": f"http://localhost:{CALLBACK_PORT}/callback",
         "scope": "user:email",
         "state": state,
         "code_challenge": challenge,
@@ -112,7 +108,7 @@ def login():
         raise typer.Exit(1)
 
     data = exchange_code_with_backend(code, state, verifier)
-    username = fetch_github_username(data["access_token"])
+    username = data['username']
     save_credentials(data["access_token"], data["refresh_token"], username)
     typer.echo(f"Logged in as @{username}")
 
@@ -124,7 +120,7 @@ def logout():
         typer.echo("Not logged in.")
         raise typer.Exit(1)
 
-    with httpx.Client() as client:
+    with httpx.Client(timeout=10.0) as client:
         client.post(
             f"{settings.API_BASE_URL}/auth/logout",
             json={"refresh_token": creds["refresh_token"]},
@@ -144,21 +140,18 @@ def whoami():
 
 
 def exchange_code_with_backend(code: str, state: str, verifier: str) -> dict:
-    with httpx.Client() as client:
-        response = client.post(
+    with httpx.Client(timeout=15.0) as client:
+        response = client.get(
             f"{settings.API_BASE_URL}/auth/github/callback",
-            params={"code": code, "state": state, "code_verifier": verifier},
+            params={
+                "code": code,
+                "state": state,
+                "code_verifier": verifier,
+                "client_source": "cli",
+            },
         )
     if response.status_code != 200:
         typer.echo("Login failed. Please try again.")
         raise typer.Exit(1)
     return response.json()
 
-
-def fetch_github_username(access_token: str) -> str:
-    with httpx.Client() as client:
-        response = client.get(
-            settings.GITHUB_USER_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-    return response.json().get("login", "unknown")
