@@ -2,7 +2,11 @@ import json
 import hashlib
 import base64
 import secrets
+import socket
 from pathlib import Path
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+
 
 CREDENTIALS_PATH = Path.home() / ".insighta" / "credentials.json"
 
@@ -40,3 +44,35 @@ def generate_pkce_pair() -> tuple[str, str]:
 
 def generate_state() -> str:
     return secrets.token_urlsafe(16)
+
+
+class _CallbackHandler(BaseHTTPRequestHandler):
+    code: str | None = None
+    state: str | None = None
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        _CallbackHandler.code = params.get("code", [None])[0]
+        _CallbackHandler.state = params.get("state", [None])[0]
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Login successful. You can close this tab.")
+
+    def log_message(self, format, *args):
+        pass
+
+
+def start_callback_server() -> tuple[HTTPServer, int]:
+    with socket.socket() as s:
+        s.bind(("localhost", 0))
+        port = s.getsockname()[1]
+
+    server = HTTPServer(("localhost", port), _CallbackHandler)
+
+    def handle_one_request():
+        server.handle_request()  # blocks until one request arrives
+        return _CallbackHandler.code, _CallbackHandler.state
+
+    server.handle_one_request = handle_one_request
+    return server, port

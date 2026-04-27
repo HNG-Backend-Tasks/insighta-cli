@@ -1,8 +1,16 @@
 from pathlib import Path
 import json
 import pytest
+import threading
 from unittest.mock import patch
-from insighta.auth import save_credentials, load_credentials, clear_credentials, generate_pkce_pair, generate_state
+from insighta.auth import (
+    save_credentials,
+    load_credentials,
+    clear_credentials,
+    generate_pkce_pair,
+    generate_state,
+    start_callback_server,
+)
 
 @pytest.fixture(autouse=True)
 def temp_credentials(tmp_path):
@@ -42,3 +50,19 @@ def test_state_is_random():
     state2 = generate_state()
     assert state1 != state2
     assert len(state1) > 10
+
+def test_callback_server_captures_code_and_state():
+    server, port = start_callback_server()
+    
+    def send_callback():
+        import httpx
+        httpx.get(f"http://localhost:{port}/callback?code=testcode&state=teststate")
+    
+    thread = threading.Thread(target=send_callback)
+    thread.start()
+    
+    code, state = server.handle_one_request()
+    thread.join()
+    
+    assert code == "testcode"
+    assert state == "teststate"
